@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /home/enderk/claude/.venv/bin/python3 /home/enderk/claude/scripts/muxidx/main.py reindex --git-dir=/home/enderk/claude/core.wiki

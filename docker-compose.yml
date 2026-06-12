@@ -1,0 +1,66 @@
+services:
+  core:
+    build:
+      context: .
+      dockerfile: core/Dockerfile
+    ports:
+      - "9090:9090"
+      - "8081:8081"
+    environment:
+      - MUXCORE_INSECURE_DISABLE_TLS=true
+      - MUXCORE_SERVER_ADDR=:8081
+    volumes:
+      - core-data:/app/data
+      - core-tmp:/app/tmp
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8081/health > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  auth-local:
+    build:
+      context: .
+      dockerfile: auth-local/Dockerfile
+    ports:
+      - "9041:9041"
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - AUTH_GRPC_ADDR=:9400
+      - AUTH_HTTP_ADDR=:9041
+      - AUTH_DB_PATH=/data/auth.db
+      - AUTH_WEBAUTHN_RP_ID=localhost
+      - AUTH_WEBAUTHN_RP_ORIGINS=http://localhost:8082
+      - AUTH_WEBAUTHN_RP_NAME=MuxCore
+    volumes:
+      - auth-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  admin-ui:
+    build:
+      context: .
+      dockerfile: admin-ui/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - ADMIN_UI_ADDR=:8082
+      - ADMIN_UI_INSECURE=true
+      - ADMIN_UI_CORE_ADDR=core:9090
+      - ADMIN_UI_AUTH_ADDR=http://auth-local:9041
+      - ADMIN_UI_AUTH_PUBLIC_URL=http://localhost:9041
+      - ADMIN_UI_TRUSTED_AUTH_HEADER=X-Auth-User
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  core-data:
+  core-tmp:
+  auth-data:
