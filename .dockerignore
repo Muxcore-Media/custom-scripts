@@ -1,0 +1,46 @@
+# Git
+.git/
+
+# Build environment
+.venv/
+.muxidx/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Database files
+*.db
+*.db-*
+
+# Individual build binaries (not source directories)
+**/tailwindcss
+admin-ui/admin-ui
+auth-local/auth-local
+core/muxcored
+
+# Irrelevant module repos (not needed for core/auth/admin builds)
+call-policy-default/
+publish-policy-default/
+ratelimit-tokenbucket/
+health-monitor/
+metrics-prometheus/
+database-sqlite/
+cache-redis/
+scheduler-cron/
+worker-pool-memory/
+secrets-file/
+feature-flags-file/
+backup-local/
+muxcore-module-starter/
+
+# Docs / notes
+notes/
+core.wiki/
+docs/
+scripts/
