@@ -325,6 +325,23 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  distributed-lock-sqlite:
+    build:
+      context: .
+      dockerfile: distributed-lock-sqlite/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - LOCK_DB_PATH=/data/locks.db
+      - LOCK_GRPC_ADDR=:9610
+    volumes:
+      - lock-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
@@ -335,3 +352,4 @@ volumes:
   backup-data:
   secrets-data:
   encryption-data:
+  lock-data:
