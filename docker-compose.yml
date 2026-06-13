@@ -61,6 +61,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - AUTH_GRPC_ADDR=auth-local:9400
       - AUTH_HTTP_ADDR=:9041
       - AUTH_DB_PATH=/data/auth.db
@@ -81,6 +82,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
     depends_on:
       core:
         condition: service_started
@@ -93,6 +95,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
     depends_on:
       core:
         condition: service_started
@@ -137,6 +140,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - REDIS_ADDR=redis:6379
       - CACHE_GRPC_ADDR=:9600
     depends_on:
@@ -153,6 +157,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - SQLITE_DB_PATH=/data/muxcore.db
       - DATABASE_GRPC_ADDR=:9700
     volumes:
@@ -169,6 +174,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - BACKUP_DIR=/data/backups
     volumes:
       - backup-data:/data
@@ -184,6 +190,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - FEATURE_FLAGS_FILE=/data/flags.yaml
     volumes:
       - ./flags.yaml:/data/flags.yaml:ro
@@ -199,6 +206,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - HEALTH_MONITOR_GRPC_ADDR=:9202
       - HEALTH_MONITOR_HTTP_ADDR=:9203
     depends_on:
@@ -215,6 +223,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - METRICS_GRPC_ADDR=:9900
       - METRICS_HTTP_ADDR=:9901
     depends_on:
@@ -229,6 +238,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - RATELIMIT_RATE=100
       - RATELIMIT_BURST=200
       - RATELIMIT_ENABLED=true
@@ -244,6 +254,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
       - SECRETS_STORE=/data/secrets.json
       - SECRETS_KEY_FILE=/data/master.key
     volumes:
