@@ -24,18 +24,9 @@ admin-ui/admin-ui
 auth-local/auth-local
 core/muxcored
 
-# Irrelevant module repos (not needed for the stack)
-ratelimit-tokenbucket/
-health-monitor/
-metrics-prometheus/
-database-sqlite/
-cache-redis/
-scheduler-cron/
-worker-pool-memory/
-secrets-file/
-feature-flags-file/
-backup-local/
+# Templates / starters
 muxcore-module-starter/
+contracts-media-admin/
 
 # Docs / notes
 notes/
