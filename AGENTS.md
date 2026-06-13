@@ -90,11 +90,16 @@ Fix any failure before shipping. Do not push broken or incomplete work to the pu
 
 ```
 /home/enderk/claude/
-├── core/          # MuxCore distributed fabric (Go project)
-├── core.wiki/     # Public-facing GitHub Wiki mirror
-├── notes/         # Private working notes (not committed to public)
-└── AGENTS.md      # This file
+├── core/                    # MuxCore distributed fabric (Go project)
+├── core.wiki/               # Public-facing GitHub Wiki mirror
+├── notes/                   # Private working notes (not committed to public)
+├── <module>*/               # Module directories (auto-discovered by muxidx)
+├── scripts/muxidx/          # Vector search indexer
+└── AGENTS.md                # This file
 ```
+
+Modules are auto-discovered by muxidx — any directory at the workspace root containing
+`go.mod`, `muxcore.json`, `Cargo.toml`, or `main.py` is indexed as a searchable repo.
 
 ### `core/` Key Subsystems
 
@@ -154,7 +159,31 @@ make ci           # Full CI pipeline
 
 | Tool | Description |
 |------|-------------|
-| `muxidx_search(query, repo, top_k, include_graph)` | Semantic search across code + docs |
+| `muxidx_search(query, repo, top_k, include_graph)` | Semantic search across code + docs. Filter by `repo=` with a repo name (core, wiki, auth-local) or a capability tag (auth, cache, database, metrics, tracing, etc.). Comma-separated: `repo=auth,cache`. |
 | `muxidx_graph_walk(chunk_id, relation, max_depth)` | Walk knowledge graph from a chunk |
 | `muxidx_get_chunk(chunk_id)` | Get full content of a specific chunk |
 | `muxidx_stats()` | Index statistics (coverage, counts) |
+
+### Adding New Repos to the Search Index
+
+When you create a new module or repo at the workspace root, **just create the directory with a recognized marker file** — indexing is automatic. No config changes needed.
+
+**Discovery rules** — a directory at `/home/enderk/claude/` is indexed if it contains any of:
+- `go.mod` (Go module)
+- `muxcore.json` (MuxCore module)
+- `Cargo.toml` (Rust crate)
+- `main.py` (Python project)
+
+**Tags assignment** — search tags are derived from the `capabilities` array in `muxcore.json`. For example:
+```json
+{
+  "name": "My Module",
+  "capabilities": ["my.feature", "storage"]
+}
+```
+This makes the module searchable via `repo=my.feature` or `repo=storage`.
+If no `muxcore.json` exists, a single tag is derived from the directory name (hyphens → dots).
+
+**Exclusions verified automatically** — hidden dirs (`.git`, `.venv`, etc.) and the `scripts/`, `notes/`, `docs/` dirs are never indexed.
+
+**Important for `muxcore-module-starter`**: if you clone the starter template as a new module, remember to update its `muxcore.json` with the correct module name and capabilities, or delete the placeholder `muxcore.json` so the auto-derived tag takes effect. The starter's placeholder capability `your.capability` will be used if left unchanged, which is not useful for searching — always customize it.

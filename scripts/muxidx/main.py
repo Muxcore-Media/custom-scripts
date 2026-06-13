@@ -10,7 +10,7 @@ import click
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from chunker import Chunker, REPO_PATHS, IGNORE_DIRS, IGNORE_EXTS
+from chunker import Chunker, REPO_PATHS, REPO_TAGS, REPO_LIST, IGNORE_DIRS, IGNORE_EXTS
 from embedder import Embedder
 from store import Store, load_manifest, save_manifest, MUXIDX_DIR
 from graph import build_all
@@ -175,6 +175,11 @@ def cli():
 @click.option("--repos", multiple=True)
 def index(repos):
     print("muxidx: building full index...")
+    print(f"  discovered repos ({len(REPO_PATHS)}):")
+    for r in REPO_LIST:
+        tags = REPO_TAGS.get(r, [])
+        tags_str = f" [{', '.join(tags)}]" if tags else ""
+        print(f"    {r}{tags_str}")
     store = Store()
     embedder = Embedder()
     index_all(store, embedder, repos=repos or None)
@@ -213,7 +218,7 @@ def reindex(paths, git_dir):
 
 @cli.command()
 @click.argument("query_str")
-@click.option("--repo", help="Filter by repo (core, wiki)")
+@click.option("--repo", help="Filter by repo name or tag (e.g. 'core', 'auth', 'cache-redis'). Comma-separated for multiple.")
 @click.option("--top-k", default=10)
 @click.option("--chunk-type", multiple=True)
 @click.option("--graph/--no-graph", default=True)

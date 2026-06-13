@@ -3,13 +3,45 @@
 
 import json
 import os
+import re
 import sys
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from chunker import REPO_PATHS, REPO_TAGS, REPO_TAG_INDEX, REPO_NAMES
 from embedder import Embedder
 from store import Store
+
+
+def format_repo_help():
+    """Build human-readable list of available repos and tags."""
+    lines = []
+    for rname in sorted(REPO_PATHS.keys()):
+        tags = REPO_TAGS.get(rname, [])
+        tags_str = f" [{', '.join(tags)}]" if tags else ""
+        lines.append(f"    {rname}{tags_str}")
+    return "\n".join(lines)
+
+
+def resolve_repo_arg(repo):
+    """Resolve a repo/tag filter argument.
+    Returns comma-separated list of repo names, or None for 'all'."""
+    if not repo or repo in ("all", ""):
+        return None
+    parts = re.split(r'[,\s]+', repo)
+    resolved = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if part in REPO_PATHS:
+            resolved.append(part)
+        elif part in REPO_TAG_INDEX:
+            resolved.extend(REPO_TAG_INDEX[part])
+        else:
+            resolved.append(part)
+    return ",".join(sorted(set(resolved))) if resolved else None
 
 
 def send_response(req_id, result):
@@ -48,16 +80,20 @@ def handle_request(req, store, embedder):
         pass
 
     elif method in ("tools/list", "mcp.tools.list"):
+        repo_help = format_repo_help()
         send_response(req_id, {
             "tools": [
                 {
                     "name": "search",
-                    "description": "Semantic search across MuxCore codebase and wiki",
+                    "description": "Semantic search across MuxCore codebase, wiki, and all modules. "
+                                   "Use `repo=` to filter to a specific repo or tag (e.g. repo=cache-redis or repo=auth). "
+                                   "Comma-separated works too: repo=cache-redis,database-sqlite. "
+                                   "Available repos and their tags:\n" + repo_help,
                     "inputSchema": {
                         "type": "object",
                         "properties": {
                             "query": {"type": "string", "description": "Natural language query"},
-                            "repo": {"type": "string", "description": "Filter: core, wiki, or all", "default": "all"},
+                            "repo": {"type": "string", "description": "Filter by repo name or capability tag (e.g. 'auth', 'cache', 'core', 'wiki'). Comma-separated for multiple.", "default": "all"},
                             "top_k": {"type": "integer", "description": "Number of results", "default": 10},
                             "include_graph": {"type": "boolean", "description": "Include graph neighbors", "default": True},
                         },
@@ -114,7 +150,7 @@ def handle_request(req, store, embedder):
                 return
 
             emb = embedder.embed_one(query)
-            repo_filter = repo if repo != "all" else None
+            repo_filter = resolve_repo_arg(repo)
             results = store.search(emb, top_k=top_k, repo=repo_filter)
             if include_graph:
                 for r in results:
