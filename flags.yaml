@@ -1,0 +1,9 @@
+new_dashboard:
+  default: true
+  variant: beta
+dark_mode:
+  default: false
+  variant: ""
+experimental_search:
+  default: false
+  variant: ""

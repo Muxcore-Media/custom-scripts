@@ -1,5 +1,7 @@
 services:
+  # ── Core Cluster ──────────────────────────────────────────
   core:
+    hostname: core
     build:
       context: .
       dockerfile: core/Dockerfile
@@ -20,6 +22,32 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  core-2:
+    hostname: core-2
+    build:
+      context: .
+      dockerfile: core/Dockerfile
+    ports:
+      - "9091:9090"
+    environment:
+      - MUXCORE_INSECURE_DISABLE_TLS=true
+      - MUXCORE_SERVER_ADDR=:8082
+      - MUXCORE_GRPC_SEED_NODES=core:9090
+    volumes:
+      - core-2-data:/app/data
+      - core-2-tmp:/app/tmp
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8082/health > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Existing Sidecar Modules ──────────────────────────────
   auth-local:
     build:
       context: .
@@ -29,7 +57,7 @@ services:
     environment:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
-      - AUTH_GRPC_ADDR=:9400
+      - AUTH_GRPC_ADDR=auth-local:9400
       - AUTH_HTTP_ADDR=:9041
       - AUTH_DB_PATH=/data/auth.db
       - AUTH_WEBAUTHN_RP_ID=localhost
@@ -37,6 +65,30 @@ services:
       - AUTH_WEBAUTHN_RP_NAME=MuxCore
     volumes:
       - auth-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  call-policy:
+    build:
+      context: .
+      dockerfile: call-policy-default/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  publish-policy:
+    build:
+      context: .
+      dockerfile: publish-policy-default/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
     depends_on:
       core:
         condition: service_started
@@ -60,7 +112,148 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # ── Infrastructure ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+    restart: unless-stopped
+
+  # ── New Modules ───────────────────────────────────────────
+  cache-redis:
+    build:
+      context: .
+      dockerfile: cache-redis/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - REDIS_ADDR=redis:6379
+      - CACHE_GRPC_ADDR=:9600
+    depends_on:
+      core:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  database-sqlite:
+    build:
+      context: .
+      dockerfile: database-sqlite/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - SQLITE_DB_PATH=/data/muxcore.db
+      - DATABASE_GRPC_ADDR=:9700
+    volumes:
+      - sqlite-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  backup-local:
+    build:
+      context: .
+      dockerfile: backup-local/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - BACKUP_DIR=/data/backups
+    volumes:
+      - backup-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  feature-flags-file:
+    build:
+      context: .
+      dockerfile: feature-flags-file/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - FEATURE_FLAGS_FILE=/data/flags.yaml
+    volumes:
+      - ./flags.yaml:/data/flags.yaml:ro
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  health-monitor:
+    build:
+      context: .
+      dockerfile: health-monitor/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - HEALTH_MONITOR_GRPC_ADDR=:9202
+      - HEALTH_MONITOR_HTTP_ADDR=:9203
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  metrics-prometheus:
+    build:
+      context: .
+      dockerfile: metrics-prometheus/Dockerfile
+    ports:
+      - "9901:9901"
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - METRICS_GRPC_ADDR=:9900
+      - METRICS_HTTP_ADDR=:9901
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  ratelimit-tokenbucket:
+    build:
+      context: .
+      dockerfile: ratelimit-tokenbucket/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - RATELIMIT_RATE=100
+      - RATELIMIT_BURST=200
+      - RATELIMIT_ENABLED=true
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  secrets-file:
+    build:
+      context: .
+      dockerfile: secrets-file/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - SECRETS_STORE=/data/secrets.json
+    volumes:
+      - secrets-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
+  core-2-data:
+  core-2-tmp:
   auth-data:
+  sqlite-data:
+  backup-data:
+  secrets-data:
