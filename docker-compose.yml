@@ -241,6 +241,7 @@ services:
       - MUXCORE_GRPC_ADDR=core:9090
       - MUXCORE_GRPC_INSECURE=true
       - SECRETS_STORE=/data/secrets.json
+      - SECRETS_KEY_FILE=/data/master.key
     volumes:
       - secrets-data:/data
     depends_on:
