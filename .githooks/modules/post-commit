@@ -1,0 +1,4 @@
+#!/bin/sh
+# Auto-reindex vector index after a commit in any module repo.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+exec /home/enderk/claude/.venv/bin/python3 /home/enderk/claude/scripts/muxidx/main.py reindex --git-dir="$REPO_ROOT"
