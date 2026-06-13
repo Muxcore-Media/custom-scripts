@@ -69,6 +69,23 @@ The local `core/` repository has two remotes:
 3. Before pushing to `origin`, rebase/squash the development history into clean, professional commits.
 4. The public repo's history must remain clean — no test triggers, no CI back-and-forth, no messy iteration.
 
+## Wiki Sync Rules
+
+The `core.wiki/` repo mirrors `https://github.com/Muxcore-Media/core.wiki.git` — the public-facing wiki.
+
+**Wiki branches MUST mirror core development branches.** Never commit wiki changes directly to `master`.
+
+Workflow:
+1. When making wiki updates alongside core code changes:
+   - Create a branch in `core.wiki/` with the same name as the core dev branch
+   - Commit wiki changes there, not on `master`
+2. When shipping core changes to public origin (squashed/rebased):
+   - Rebase or fast-forward the wiki branch onto `master`
+   - Push both `core.wiki` master and the core public master together
+3. If no core code changes accompany wiki-only updates (typos, clarifications), commit to `core.wiki/` master directly — this is safe.
+
+Rationale: the public wiki must never document features that don't yet exist in the public core release.
+
 ## Pre-shipment Checklist
 
 Before shipping to the public repo, ALL of the following must pass:
