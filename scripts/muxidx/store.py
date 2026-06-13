@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sqlite3
 import numpy as np
 
@@ -16,6 +17,14 @@ FAISS_INDEX = os.path.join(MUXIDX_DIR, "faiss.index")
 EMBEDDINGS_NPY = os.path.join(MUXIDX_DIR, "embeddings.npy")
 MANIFEST_PATH = os.path.join(MUXIDX_DIR, "index_meta.json")
 DIMENSION = 768
+
+# Import repo/tag index for search resolution
+try:
+    from chunker import REPO_PATHS, REPO_TAGS, REPO_TAG_INDEX
+except ImportError:
+    REPO_PATHS = {}
+    REPO_TAGS = {}
+    REPO_TAG_INDEX = {}
 
 
 def ensure_dir():
@@ -39,12 +48,17 @@ class Store:
                 id TEXT PRIMARY KEY,
                 faiss_id INTEGER UNIQUE,
                 file_path TEXT, repo TEXT, chunk_type TEXT,
-                name TEXT, package TEXT,
+                name TEXT, package TEXT, tags TEXT,
                 start_line INT, end_line INT,
                 content TEXT, git_sha TEXT,
                 last_modified REAL, token_count INT
             )
         """)
+        # Add tags column if it doesn't exist (migration for existing DBs)
+        try:
+            c.execute("ALTER TABLE chunks ADD COLUMN tags TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # column already exists
         c.execute("CREATE INDEX IF NOT EXISTS idx_chunks_file ON chunks(file_path)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_chunks_repo ON chunks(repo)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_chunks_type ON chunks(chunk_type)")
@@ -92,9 +106,10 @@ class Store:
 
         for i, ch in enumerate(chunks):
             c.execute(
-                "INSERT OR REPLACE INTO chunks (id, faiss_id, file_path, repo, chunk_type, name, package, start_line, end_line, content, git_sha, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR REPLACE INTO chunks (id, faiss_id, file_path, repo, chunk_type, name, package, tags, start_line, end_line, content, git_sha, last_modified) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (ch["id"], int(ids[i]), ch["file_path"], ch["repo"], ch["chunk_type"],
-                 ch["name"], ch.get("package", ""), ch["start_line"], ch["end_line"],
+                 ch["name"], ch.get("package", ""), ch.get("tags", ""),
+                 ch["start_line"], ch["end_line"],
                  ch["content"], ch.get("git_sha"), ch.get("last_modified"))
             )
         self.chunks_conn.commit()
@@ -137,6 +152,24 @@ class Store:
             except Exception:
                 pass
 
+    def _resolve_repos(self, repo_spec):
+        """Resolve a repo filter to a set of repo names.
+        Supports: exact name, comma-separated names, tag-based expansion."""
+        if not repo_spec:
+            return None
+        repos = set()
+        for part in re.split(r'[,\s]+', repo_spec):
+            part = part.strip()
+            if not part:
+                continue
+            if part in REPO_PATHS:
+                repos.add(part)
+            elif part in REPO_TAG_INDEX:
+                repos.update(REPO_TAG_INDEX[part])
+            else:
+                repos.add(part)
+        return repos
+
     def search(self, query_embedding, top_k=10, repo=None, chunk_types=None):
         if not HAS_FAISS or self.faiss_index is None or self.faiss_index.ntotal == 0:
             return []
@@ -145,21 +178,23 @@ class Store:
         scores, ids = self.faiss_index.search(emb, top_k * 3)
         results = []
         c = self.chunks_conn
+        repo_filter = self._resolve_repos(repo)
         for score, faiss_id in zip(scores[0], ids[0]):
             if faiss_id < 0:
                 continue
-            row = c.execute("SELECT id, file_path, repo, chunk_type, name, package, content, git_sha FROM chunks WHERE faiss_id = ?",
+            row = c.execute("SELECT id, file_path, repo, chunk_type, name, package, tags, content, git_sha FROM chunks WHERE faiss_id = ?",
                           (int(faiss_id),)).fetchone()
             if not row:
                 continue
-            if repo and row[2] != repo:
+            if repo_filter and row[2] not in repo_filter:
                 continue
             if chunk_types and row[3] not in chunk_types:
                 continue
             results.append({
                 "chunk_id": row[0], "file_path": row[1], "repo": row[2],
                 "chunk_type": row[3], "name": row[4], "package": row[5],
-                "content": row[6][:2000], "git_sha": row[7], "score": float(score),
+                "tags": row[6], "content": row[7][:2000], "git_sha": row[8],
+                "score": float(score),
             })
             if len(results) >= top_k:
                 break

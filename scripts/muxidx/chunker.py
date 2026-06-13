@@ -1,16 +1,74 @@
 import hashlib
+import json
 import os
 import re
-import json
 from pathlib import Path
 
 from tree_sitter import Language, Parser
 import tree_sitter_go as tsgo
 
-REPO_PATHS = {
-    "core": os.path.abspath(os.path.join(os.path.dirname(__file__), "../../core")),
-    "wiki": os.path.abspath(os.path.join(os.path.dirname(__file__), "../../core.wiki")),
-}
+WORKSPACE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+
+REPO_PATHS: dict[str, str] = {}
+REPO_TAGS: dict[str, list[str]] = {}
+REPO_NAMES: dict[str, str] = {}  # module_dir -> display_name from muxcore.json
+
+
+def _discover_repos():
+    """Auto-discover all repos (core, wiki, modules) at workspace root."""
+    builtins = {
+        "core": os.path.join(WORKSPACE_ROOT, "core"),
+        "wiki": os.path.join(WORKSPACE_ROOT, "core.wiki"),
+    }
+    EXCLUDED = {".git", ".venv", ".muxidx", ".claude", "core", "core.wiki",
+                "scripts", "notes", "docs", "node_modules"}
+
+    for name, path in builtins.items():
+        if os.path.isdir(path):
+            REPO_PATHS[name] = os.path.abspath(path)
+
+    for entry in sorted(os.listdir(WORKSPACE_ROOT)):
+        if entry.startswith(".") or entry in EXCLUDED:
+            continue
+        d = os.path.join(WORKSPACE_ROOT, entry)
+        if not os.path.isdir(d):
+            continue
+        # Detect module: has go.mod, muxcore.json, Cargo.toml, or main.go
+        if not any(os.path.isfile(os.path.join(d, f))
+                   for f in ("go.mod", "muxcore.json", "Cargo.toml", "main.py")):
+            continue
+        REPO_PATHS[entry] = os.path.abspath(d)
+        # Load tags from muxcore.json
+        _load_module_tags(entry, d)
+
+
+def _load_module_tags(repo_name: str, repo_path: str):
+    muxcore = os.path.join(repo_path, "muxcore.json")
+    tags = []
+    display = repo_name
+    if os.path.isfile(muxcore):
+        try:
+            with open(muxcore) as f:
+                meta = json.load(f)
+            tags = meta.get("capabilities", [])
+            if not tags:
+                tags = meta.get("roles", [])
+            display = meta.get("name", repo_name)
+        except Exception:
+            pass
+    if not tags:
+        tags = [repo_name.replace("-", ".")]
+    REPO_TAGS[repo_name] = tags
+    REPO_NAMES[repo_name] = display
+
+
+# Run discovery at import time
+_discover_repos()
+REPO_TAG_INDEX: dict[str, list[str]] = {}  # tag -> [repo_name, ...]
+for rname, rtags in REPO_TAGS.items():
+    for t in rtags:
+        REPO_TAG_INDEX.setdefault(t, []).append(rname)
+REPO_LIST = sorted(REPO_PATHS.keys())
 
 IGNORE_DIRS = {".git", "node_modules", "vendor", ".venv", "__pycache__", "proto/gen"}
 IGNORE_EXTS = {".sum", ".mod", ".gitignore", ".dockerignore"}
@@ -108,6 +166,7 @@ class Chunker:
             "content": content_text,
             "git_sha": self.git_sha,
             "last_modified": self.last_modified,
+            "tags": ",".join(REPO_TAGS.get(self.repo, [self.repo])),
         })
         return cid
 

@@ -299,6 +299,32 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  tracing-otlp:
+    build:
+      context: .
+      dockerfile: tracing-otlp/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  config-watcher:
+    build:
+      context: .
+      dockerfile: config-watcher/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core-2:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core:9090
+    depends_on:
+      core-2:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
