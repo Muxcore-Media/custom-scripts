@@ -186,3 +186,27 @@ If no `muxcore.json` exists, a single tag is derived from the directory name (hy
 **Exclusions verified automatically** — hidden dirs (`.git`, `.venv`, etc.) and the `scripts/`, `notes/`, `docs/` dirs are never indexed.
 
 **Important for `muxcore-module-starter`**: if you clone the starter template as a new module, remember to update its `muxcore.json` with the correct module name and capabilities, or delete the placeholder `muxcore.json` so the auto-derived tag takes effect. The starter's placeholder capability `your.capability` will be used if left unchanged, which is not useful for searching — always customize it.
+
+### Git Hooks — Auto Re-index on Commit
+
+A shared git hook directory lives at `.githooks/modules/` that triggers `muxidx reindex` on every `post-commit` and `post-merge` in any module repo.
+
+All existing module repos have `core.hooksPath` set to this shared directory automatically.
+
+**When creating a new module repo** (e.g. cloning `muxcore-module-starter`), you must configure hooks manually once:
+
+```bash
+cd /home/enderk/claude/<your-module>
+git config core.hooksPath /home/enderk/claude/.githooks/modules
+```
+
+This ensures the vector index stays fresh whenever you commit or pull in that module.
+
+**How it works**: The shared `post-commit` hook runs `git rev-parse --show-toplevel` to detect its repo root, then calls `muxidx reindex --git-dir=<repo_root>`. The `reindex` command diffs `HEAD~1` and re-embeds only changed files.
+
+**Existing hooks (not auto-discovered):**
+| Repo | Hooks dir | Hook files |
+|------|-----------|------------|
+| `core/` | `.githooks/core/` | `post-commit`, `post-merge` |
+| `core.wiki/` | `.githooks/wiki/` | `post-commit`, `post-merge` |
+| All modules | `.githooks/modules/` | `post-commit`, `post-merge` |
