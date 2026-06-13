@@ -24,9 +24,7 @@ admin-ui/admin-ui
 auth-local/auth-local
 core/muxcored
 
-# Irrelevant module repos (not needed for core/auth/admin builds)
-call-policy-default/
-publish-policy-default/
+# Irrelevant module repos (not needed for the stack)
 ratelimit-tokenbucket/
 health-monitor/
 metrics-prometheus/
