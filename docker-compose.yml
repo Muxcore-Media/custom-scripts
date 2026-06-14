@@ -405,6 +405,34 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  input-validate-jsonschema:
+    build:
+      context: .
+      dockerfile: input-validate-jsonschema/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - VALIDATE_GRPC_ADDR=:9660
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  spool-resolver-http:
+    build:
+      context: .
+      dockerfile: spool-resolver-http/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - SPOOL_RESOLVER_GRPC_ADDR=:9670
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
