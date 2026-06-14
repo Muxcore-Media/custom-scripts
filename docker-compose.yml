@@ -325,6 +325,25 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  logging-file:
+    build:
+      context: .
+      dockerfile: logging-file/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - LOG_FILE_PATH=/data/module.log
+      - LOG_GRPC_ADDR=:9620
+      - LOG_STDOUT=true
+      - LOG_LEVEL=debug
+    volumes:
+      - log-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
   distributed-lock-sqlite:
     build:
       context: .
@@ -352,4 +371,5 @@ volumes:
   backup-data:
   secrets-data:
   encryption-data:
+  log-data:
   lock-data:
