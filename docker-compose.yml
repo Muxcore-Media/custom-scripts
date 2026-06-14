@@ -511,6 +511,84 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  downloader-native-torrent:
+    build:
+      context: .
+      dockerfile: downloader-native-torrent/Dockerfile
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - MUXCORE_GRPC_ADDR=localhost:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - DOWNLOADER_GRPC_ADDR=:9460
+      - DOWNLOAD_DIR=/data/downloads
+      - WG_CONF=/data/wireguard/wg-us-tx.conf
+      - WG_KILL_SWITCH=true
+      - NAT_PMP_PORT=6881
+    volumes:
+      - download-data:/data
+      - /home/enderk/private/muxcore:/data/wireguard:ro
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── Media Modules ──────────────────────────────────────────
+  indexer-prowlarr:
+    build:
+      context: .
+      dockerfile: indexer-prowlarr/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  media-custom-formats:
+    build:
+      context: .
+      dockerfile: media-custom-formats/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  media-ffprobe:
+    build:
+      context: .
+      dockerfile: media-ffprobe/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
+  media-scanner:
+    build:
+      context: .
+      dockerfile: media-scanner/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
@@ -524,3 +602,4 @@ volumes:
   log-data:
   lock-data:
   movies-data:
+  download-data:
