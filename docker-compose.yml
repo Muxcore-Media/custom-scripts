@@ -360,6 +360,20 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  data-redaction-pattern:
+    build:
+      context: .
+      dockerfile: data-redaction-pattern/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - REDACTION_GRPC_ADDR=:9650
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
   serialization-safe:
     build:
       context: .
