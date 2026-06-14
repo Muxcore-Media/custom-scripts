@@ -1,0 +1,16 @@
+{
+  "name": "Serialization Safe",
+  "description": "Safe content-type serialization provider supporting JSON, msgpack, and protobuf conversion",
+  "version": "0.1.0",
+  "author": "MuxCore",
+  "roles": ["infrastructure"],
+  "capabilities": ["serialization"],
+  "contracts": [
+    {
+      "repo": "github.com/Muxcore-Media/core/pkg/contracts",
+      "interface": "SerializationProvider",
+      "version": "v0.4.0"
+    }
+  ],
+  "minCoreVersion": "0.4.0"
+}
