@@ -526,7 +526,7 @@ services:
       - DOWNLOADER_GRPC_ADDR=:9460
       - DOWNLOAD_DIR=/data/downloads
       - WG_CONF=/data/wireguard/wg-us-tx.conf
-      - WG_KILL_SWITCH=true
+      - WG_KILL_SWITCH=false
       - NAT_PMP_PORT=6881
     volumes:
       - download-data:/data
