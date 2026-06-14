@@ -344,6 +344,22 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  circuitbreaker-simple:
+    build:
+      context: .
+      dockerfile: circuitbreaker-simple/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - CB_GRPC_ADDR=:9640
+      - CB_FAILURE_THRESHOLD=5
+      - CB_COOLDOWN=30s
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
   serialization-safe:
     build:
       context: .
