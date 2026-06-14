@@ -448,6 +448,23 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  notification-default:
+    build:
+      context: .
+      dockerfile: notification-default/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - NOTIFY_GRPC_ADDR=:9440
+      - DISCORD_WEBHOOK=${DISCORD_WEBHOOK:-}
+      - SLACK_WEBHOOK=${SLACK_WEBHOOK:-}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
   media-movies:
     build:
       context: .

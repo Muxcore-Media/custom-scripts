@@ -1,0 +1,57 @@
+syntax = "proto3";
+package muxcore.notification.v1;
+option go_package = "github.com/Muxcore-Media/notification-default/proto/notifyv1;notifyv1";
+
+service NotificationService {
+  rpc Notify(NotifyRequest) returns (NotifyResponse);
+  rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+  rpc Status(StatusRequest) returns (StatusResponse);
+}
+
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+  CHANNEL_DISCORD = 1;
+  CHANNEL_SLACK = 2;
+  CHANNEL_WEBHOOK = 3;
+  CHANNEL_EMAIL = 4;
+}
+
+message NotifyRequest {
+  string title = 1;
+  string message = 2;
+  string severity = 3;       // "info", "success", "warning", "error"
+  string source_module = 4;  // module that triggered the notification
+  repeated Channel channels = 5;  // empty = all configured channels
+  map<string, string> fields = 6; // additional structured fields
+}
+
+message NotifyResponse {
+  repeated ChannelResult results = 1;
+}
+
+message ChannelResult {
+  Channel channel = 1;
+  bool success = 2;
+  string error = 3;
+}
+
+message ConfigureRequest {
+  Channel channel = 1;
+  map<string, string> settings = 2; // per-channel config (webhook_url, smtp_server, etc.)
+}
+
+message ConfigureResponse {
+  bool configured = 1;
+}
+
+message StatusRequest {}
+
+message StatusResponse {
+  repeated ChannelStatus channels = 1;
+}
+
+message ChannelStatus {
+  Channel channel = 1;
+  bool enabled = 2;
+  string description = 3;
+}
