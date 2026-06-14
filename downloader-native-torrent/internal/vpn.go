@@ -79,9 +79,6 @@ func (v *vpnManager) start(configPath string, enableKill bool) error {
 		if err := applyKillSwitch(); err != nil {
 			slog.Warn("vpn: kill switch setup failed", "error", err)
 		}
-		_ = exec.Command("sh", "-c",
-			"echo 'nameserver 1.1.1.1\nnameserver 1.0.0.1' > /etc/resolv.conf",
-		).Run()
 	}
 
 	v.ifaceName = iface
@@ -243,30 +240,29 @@ func teardownInterface(iface string) {
 	_ = exec.Command("ip", "link", "delete", iface).Run()
 }
 
-// ── Kill switch (iptables – Gluetun-style) ───────────────────
+// ── Kill switch (iptables – no policy changes, host-safe) ───
 
 func applyKillSwitch() error {
 	_ = exec.Command("sh", "-c",
-		"iptables --policy INPUT DROP; iptables --policy OUTPUT DROP; iptables --policy FORWARD DROP",
+		"echo 'nameserver 1.1.1.1\nnameserver 1.0.0.1' > /etc/resolv.conf",
 	).Run()
 	return iptables([][]string{
 		{"--append", "OUTPUT", "-o", "lo", "-j", "ACCEPT"},
-		{"--append", "INPUT", "-i", "lo", "-j", "ACCEPT"},
 		{"--append", "OUTPUT", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"},
-		{"--append", "INPUT", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"},
+		{"--append", "OUTPUT", "-d", "79.127.147.2", "-p", "udp", "--dport", "51820", "-j", "ACCEPT"},
+		{"--append", "OUTPUT", "-o", "wg-us-tx", "-j", "ACCEPT"},
+		{"--append", "OUTPUT", "-j", "DROP"},
 	})
 }
 
 func removeKillSwitch() {
 	iptables([][]string{
 		{"--delete", "OUTPUT", "-o", "lo", "-j", "ACCEPT"},
-		{"--delete", "INPUT", "-i", "lo", "-j", "ACCEPT"},
 		{"--delete", "OUTPUT", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"},
-		{"--delete", "INPUT", "-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED", "-j", "ACCEPT"},
+		{"--delete", "OUTPUT", "-d", "79.127.147.2", "-p", "udp", "--dport", "51820", "-j", "ACCEPT"},
+		{"--delete", "OUTPUT", "-o", "wg-us-tx", "-j", "ACCEPT"},
+		{"--delete", "OUTPUT", "-j", "DROP"},
 	})
-	_ = exec.Command("sh", "-c",
-		"iptables --policy INPUT ACCEPT; iptables --policy OUTPUT ACCEPT; iptables --policy FORWARD ACCEPT",
-	).Run()
 }
 
 func iptables(rules [][]string) error {
