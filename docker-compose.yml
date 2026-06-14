@@ -448,6 +448,26 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  media-movies:
+    build:
+      context: .
+      dockerfile: media-movies/Dockerfile
+    ports:
+      - "9430:9430"
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - MOVIES_GRPC_ADDR=:9420
+      - MOVIES_HTTP_ADDR=:9430
+      - MOVIES_DB_PATH=/data/movies.db
+    volumes:
+      - movies-data:/data
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
@@ -460,3 +480,4 @@ volumes:
   encryption-data:
   log-data:
   lock-data:
+  movies-data:
