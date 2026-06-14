@@ -2,3 +2,5 @@
 # muxidx index
 .muxidx/
 scripts/muxidx/goextract_bin
+http-downloader/
+searcher-module/

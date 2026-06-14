@@ -32,10 +32,10 @@ updated `muxcore-module-starter` template.
 - cache-memory
 - cache-redis
 - database-postgres
-- downloader-http
+- downloader module (republished elsewhere)
 - eventbus-nats
 - health-monitor
-- searcher-module
+- searcher module (republished elsewhere)
 - jellyfin
 - media-library
 - media-manager-movies
