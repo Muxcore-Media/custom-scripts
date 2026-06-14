@@ -433,6 +433,21 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  metadata-tmdb:
+    build:
+      context: .
+      dockerfile: metadata-tmdb/Dockerfile
+    environment:
+      - MUXCORE_GRPC_ADDR=core:9090
+      - MUXCORE_GRPC_INSECURE=true
+      - MUXCORE_GRPC_SEED_NODES=core-2:9090
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+      - METADATA_GRPC_ADDR=:9410
+    depends_on:
+      core:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   core-data:
   core-tmp:
