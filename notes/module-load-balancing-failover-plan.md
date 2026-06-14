@@ -777,7 +777,7 @@ if err != nil {
 ### 7.1 Missing: Same Binary, Different IDs
 
 Currently the sidecar manager derives module ID from the repo URL (unique).
-To run two identical modules on one node (e.g., two downloaders to
+To run two identical modules on one node (e.g., two instances to
 split load), the module ID must be distinct while the binary is the same.
 
 Add instance naming support to the spool/muxcore.json schema:
