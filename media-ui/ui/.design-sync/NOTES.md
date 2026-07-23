@@ -4,7 +4,7 @@
 
 - **Router context for page previews** — pages that use `useNavigate`/`useParams` (Layout, MediaCard, MovieDetail, Player, TVShowDetail) need a MemoryRouter wrapper. Solution: export `MemoryRouter as RouterWrapper` from `src/lib.ts`, then set `cfg.provider.component = "RouterWrapper"`. The converter wraps all preview renders in `h(window.MediaUI.RouterWrapper, {}, h(fn))`.
 
-- **react-router-dom is inlined** — the converter inlines `@remix-run/router`, `react-router`, and `react-router-dom` into the bundle (listed under `inlinedExternals`). This is correct because they're needed at runtime in the preview. The RouterWrapper approach works because all router code shares the same inlined instance.
+- **react-router-dom is external** — `vite.config.lib.ts` lists `react-router-dom` (with `react` / `react-dom`) under `rollupOptions.external`. Previews must provide those globals at runtime. `RouterWrapper` (`MemoryRouter` re-export from `src/lib.ts`) still works as long as the preview host loads a single shared `react-router-dom` instance.
 
 - **CSS_RUNTIME is expected** — Tailwind v4 via `@tailwindcss/vite` injects styles at runtime. No static CSS file is shipped. The bundle is self-styling.
 
